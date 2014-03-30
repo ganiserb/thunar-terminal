@@ -1,10 +1,10 @@
 #!/bin/bash
  
 ## Works best when using Thunar > View > Location Selector > Toolbar Style
-## Requirements: xdotool, xclip, xfce4-terminal
+## Requirements: xdotool, xclip
  
 # Todo:
-# *) Support for other terminal other than xfce4-terminal?
+# *) [Sort of Done] Support for other terminal other xfce4-terminal?
 # *) [Done] Open terminal when viewing remote desktop
 #   Was having problem in opening to the correct directory if opened via
 #   gsshfs. However fixed in version 0.4.
@@ -17,11 +17,18 @@
 #       -> Typo was removed.
 # *) [Done] Activate terminal window after opening
 #       -> Ugly hack
- 
+
+
+
+TerminalEmulator="gnome-terminal" #"xfce4-terminal"
+ExtraParameters="" #"--drop-down"
+WorkingDirParameter="--working-directory="
+
+
 ScriptName=$(basename $0)
 Author="Anjishnu Sarkar"
-Version="0.4"
-Requirements="xdotool xclip xfce4-terminal"
+Version="0.5"
+Requirements="xdotool xclip $TerminalEmulator"
 HelpText="$ScriptName: Script to open a terminal in the same directory as
 thunar file manager via shortcut key. Written specifically for openbox.
 Can be configured to use in other windows managers as well.
@@ -29,29 +36,23 @@ Can be configured to use in other windows managers as well.
 The script has support for opening remote folders too.
 If thunar is viewing remote desktop and has the location bar in the format
 sftp://username@server/remote/home/some/folder
-then pressing \"F4\" in that directory, opens a terminal via ssh.
+then pressing the binded key in that directory opens a terminal via ssh.
  
 Requirements are $Requirements.
 Author: $Author, Version: $Version
  
 Installation:
+Set the \$TerminalEmulator variable
 Make the script executable
    chmod +x ${ScriptName}
 Copy it in your \$PATH
    cp thunar-terminal.sh ~/bin/
- 
-Openbox configuration:
-Open the file ~/.config/openbox/rc.xml and copy these lines under
-<!-- Keybindings for running applications -->
-   <keybind key=\"F4\">
-     <action name=\"execute\">
-       <execute>thunar-terminal.sh</execute>
-     </action>
-   </keybind>
- 
+Add a global keyboard shortcut to this script
+   xfce4-keyboard-settings > \"Application shortcuts\" tab > Add
+
 Thunar configuration:
-Works best if \"Location Selector\" of thunar is in \"Toolbar Style\".
-Thunar > View > Location Selector > Toolbar Style.
+Works if \"Location Selector\" of thunar is in \"Toolbar Style\".
+Thunar menu: View > Location Selector > Toolbar Style.
  
 Restart X (Logout and login). Now open thunar, move to any directory and
 press \"F4\" to open a terminal in the same directory.
@@ -120,20 +121,20 @@ do
  
         if [ -z "$User_Server" ];then
             ## Open terminal in location
-            xfce4-terminal --working-directory="$Location" &
+            $TerminalEmulator $ExtraParameters $WorkingDirParameter$Location &
             PID=$(echo "$!")
         else
             WorkingDir="$(echo "$Location" | sed 's/^.*@//' \
                | sed 's/::/\//' | sed 's/:/\//g' \
                | sed 's/\//@/' \
                | sed 's/^.*@/\//' | sed 's/ /\\ /g')"
-            xfce4-terminal -x ssh -tX "$User_Server" "cd ${WorkingDir} 2>/dev/null; bash" &
+            $TerminalEmulator -x ssh -tX "$User_Server" "cd ${WorkingDir} 2>/dev/null; bash" &
             PID=$(echo "$!")
         fi
  
         ## Wait before searching for the latest window
         sleep 0.5s
-        XtermID=$(xdotool search --pid "$PID" --class "Xfce4-terminal" \
+        XtermID=$(xdotool search --pid "$PID" --class "$TerminalEmulator" \
             | tail -n 1)
  
         ## Activate latest window
